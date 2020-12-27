@@ -40,7 +40,7 @@ class UnknownCommandError(Exception):
 @dataclass(frozen=True)
 class train:
     name: str
-    num: str
+    num: int
     time: str
 
 
@@ -48,7 +48,7 @@ class train:
 class Staff:
     trains: List[train] = field(default_factory=lambda: [])
 
-    def add(self, name: str, num: str, time: str) -> None:
+    def add(self, name: str, num: int, time: str) -> None:
 
         if ":" not in time:
             raise IllegalTimeError(time)
@@ -98,23 +98,16 @@ class Staff:
 
         return '\n'.join(table)
 
-    def select(self):
-
+    def select(self, numbers: str) -> List[train]:
         parts = command.split(' ', maxsplit=2)
-
         numbers = int(parts[1])
+        result = []
 
-        c = 0
+        for train in self.trains:
+            if train.num == numbers:
+                result.append(train)
 
-        for trainn in self.trains:
-            if trainn.num == numbers:
-                c += 1
-                print('Номер поезда:', trainn.num)
-                print('Пункт назначения:', trainn.name)
-                print('Время отправления(ЧЧ:ММ):', trainn.time)
-
-        if c == 0:
-            print("Таких поездов нет!")
+        return result
 
     def load(self, filename: str) -> None:
         with open(filename, 'r', encoding='utf8') as fin:
@@ -130,7 +123,7 @@ class Staff:
                 if element.tag == 'name':
                     name = element.text
                 elif element.tag == 'num':
-                    num = element.text
+                    num = int(element.text)
                 elif element.tag == 'time':
                     time = element.text
 
@@ -173,7 +166,6 @@ if __name__ == '__main__':
         format='%(asctime)s %(levelname)s:%(message)s'
     )
 
-    trains = []
     staff = Staff()
     # Организовать бесконечный цикл запроса команд.
     while True:
@@ -187,7 +179,7 @@ if __name__ == '__main__':
             elif command == 'add':
                 # Запросить данные о поезде.
                 name = input("Название пункта назначения: ")
-                num = input("Номер поезда: ")
+                num = int(input("Номер поезда: "))
                 time = input("Время отправления: ")
 
                 staff.add(name, num, time)
@@ -203,25 +195,23 @@ if __name__ == '__main__':
 
             elif command.startswith('select '):
                 parts = command.split(' ', maxsplit=2)
+                selected = staff.select(parts[1])
 
-                numbers = int(parts[1])
-
-                c = 0
-
-                for trainn in trains:
-                    if trainn.num == numbers:
-                        c += 1
-                        print('Номер поезда:', trainn.num)
-                        print('Пункт назначения:', trainn.name)
-                        print('Время отправления:', trainn.time)
-                        logging.info(
-                            f"Найден поезд с номером {num} ."
+                if selected:
+                    for c, train in enumerate(selected, 1):
+                        print(
+                            ('Номер поезда:', train.num),
+                            ('Пункт назначения:', train.name),
+                            ('Время отправления(ЧЧ:ММ):', train.time)
                         )
+                    logging.info(
+                        f"Найден поезд с номером {train.num}"
+                    )
 
-                if c == 0:
+                else:
                     print("Таких поездов нет!")
                     logging.warning(
-                        f"Поезд с номером {num} не найден."
+                        f"Поезд с номером {train.num} не найден."
                     )
 
             elif command.startswith('load '):
